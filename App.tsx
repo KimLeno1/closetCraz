@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
-  HashRouter, 
+  MemoryRouter, 
   Routes, 
   Route, 
   Navigate, 
   useLocation, 
-  useNavigate 
+  useNavigate,
+  useParams
 } from 'react-router-dom';
 import { View, UserStatus, Product, Order, Bundle, EngagementRequest, AppNotification, OrderStatus } from './types';
 import { db } from './services/database';
@@ -265,16 +266,16 @@ const AppContent: React.FC = () => {
 
 // Helper component to resolve product from URL params
 const ProductDetailWrapper: React.FC<any> = ({ products, userStatus, addToCart, setVault, onBack, onNavigateToTryOn }) => {
-  const { id } = (window as any).location.hash.includes('product/') ? { id: (window as any).location.hash.split('product/')[1] } : { id: null };
+  const { id } = useParams();
   const prod = products.find((p: any) => p.id === id);
   if (!prod) return <div className="pt-40 text-center uppercase font-black text-stone-800 tracking-[1em]">Protocol Reference Void</div>;
   return <ProductDetail product={prod} onBack={onBack} onAddToCart={addToCart} onAddToVault={(id) => setVault((v: any) => [...new Set([...v, id])])} userStatus={userStatus} onNavigateToTryOn={onNavigateToTryOn} />;
 };
 
 const App: React.FC = () => (
-  <HashRouter>
+  <MemoryRouter>
     <AppContent />
-  </HashRouter>
+  </MemoryRouter>
 );
 
 export default App;

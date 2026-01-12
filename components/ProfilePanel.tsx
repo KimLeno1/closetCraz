@@ -3,8 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   User, Trophy, Gem, Activity, ShieldCheck, Zap, Cpu, ArrowUpRight, 
   Clock, Fingerprint, Loader2, Sparkles, Award, ChevronRight, 
-  Target, Layers, Hexagon, BarChart3, Globe, Command,
-  Unlock, Lock, BadgeCheck, Eye, ZapOff
+  Target, Layers, Hexagon, BarChart3, Globe, Command
 } from 'lucide-react';
 import { UserStatus } from '../types';
 import { STATUS_PROGRESSION } from '../constants';
@@ -45,13 +44,6 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ user, points, diamon
     fetchBrief();
   }, [userStatus, points]);
 
-  const credentials = [
-    { id: 'ext', label: 'Priority Extraction', icon: Zap, unlocked: statusHierarchy.indexOf(userStatus) >= 1 },
-    { id: 'arc', label: 'Archive Access', icon: Globe, unlocked: statusHierarchy.indexOf(userStatus) >= 2 },
-    { id: 'bes', label: 'Bespoke Forge', icon: Hexagon, unlocked: statusHierarchy.indexOf(userStatus) >= 2 },
-    { id: 'mon', label: 'Model Monitoring', icon: Eye, unlocked: statusHierarchy.indexOf(userStatus) >= 3 },
-  ];
-
   return (
     <div className="min-h-screen pt-32 pb-40 px-6 md:px-24 page-transition">
       <div className="max-w-7xl mx-auto space-y-32">
@@ -89,6 +81,7 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ user, points, diamon
           </div>
         </header>
 
+        {/* Status Mechanics Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Main Progression Card */}
@@ -163,40 +156,6 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ user, points, diamon
           </div>
         </div>
 
-        {/* Neural Credentials Section */}
-        <section className="space-y-12">
-           <div className="flex items-center gap-4">
-             <BadgeCheck size={20} className="text-stone-500" />
-             <h2 className="text-xs font-black uppercase tracking-[0.5em] text-white">Neural Credentials // Status_Perks</h2>
-           </div>
-           
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {credentials.map((cred) => (
-                <div 
-                  key={cred.id} 
-                  className={`p-8 border rounded-sm transition-all duration-500 flex flex-col justify-between aspect-square group ${
-                    cred.unlocked 
-                    ? 'bg-[#0D0D0F] border-amber-500/20 hover:border-amber-500' 
-                    : 'bg-transparent border-white/5 opacity-40 grayscale'
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <cred.icon size={24} className={cred.unlocked ? 'text-amber-500' : 'text-stone-700'} />
-                    {cred.unlocked ? <Unlock size={14} className="text-amber-500" /> : <Lock size={14} className="text-stone-800" />}
-                  </div>
-                  <div className="space-y-2">
-                    <p className={`text-xs font-black uppercase tracking-widest leading-tight ${cred.unlocked ? 'text-white' : 'text-stone-700'}`}>
-                      {cred.label}
-                    </p>
-                    <p className="text-[8px] uppercase tracking-widest text-stone-600 font-mono">
-                      {cred.unlocked ? 'ACTIVE_PROTOCOL' : 'ACCESS_RESTRICTED'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-           </div>
-        </section>
-
         {/* AI Synthetic Brief */}
         <section className="bg-[#080808] border border-white/5 p-16 md:p-24 rounded-sm relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
@@ -234,6 +193,13 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ user, points, diamon
                       <span className="text-[9px] font-black uppercase tracking-widest text-stone-500">Social Velocity</span>
                     </div>
                     <p className="text-xl font-mono text-white">HIGH_RES</p>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-stone-500">Market Authority</span>
+                    </div>
+                    <p className="text-xl font-mono text-white">TIER_1</p>
                   </div>
                 </div>
               </div>
@@ -288,7 +254,7 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ user, points, diamon
               <span className="flex items-center gap-3"><div className="w-1.5 h-1.5 bg-white rounded-full" /> System_Registry: Secure</span>
               <span className="flex items-center gap-3"><div className="w-1.5 h-1.5 bg-white rounded-full" /> Temporal_Node: Sync</span>
            </div>
-           <p className="text-[9px] font-mono tracking-tighter uppercase">Checksum: {Math.random().toString(16).substring(2, 10).toUpperCase()} // v4.2.1-STABLE</p>
+           <p className="text-[9px] font-mono tracking-tighter uppercase">Checksum: {Math.random().toString(16).substring(2, 10).toUpperCase()} // v4.2.0-STABLE</p>
         </footer>
       </div>
     </div>
