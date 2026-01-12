@@ -1,0 +1,7 @@
+{
+  "name": "Closet Craze",
+  "description": "A high-end, behavior-engineered fashion platform designed for identity reinforcement and status progression.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
