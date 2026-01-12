@@ -158,3 +158,18 @@ export const getBroadcastManifesto = async (orderItems: string, status: string) 
     return `Deployment Confirmed: ${orderItems}. Network status: synchronized. #AestheticAuthority`;
   }
 };
+
+export const getProfileIdentityBrief = async (status: string, points: number) => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Generate a "Neural Identity Profile" summary for a user.
+      Status: ${status}. Network Points: ${points}.
+      Topic: Their aesthetic influence and architectural potential in the collective.
+      Tone: Cold, prestigious, brutalist, high-fashion. Max 30 words.`,
+    });
+    return response.text;
+  } catch (error) {
+    return "Your identity trajectory remains synchronized with the collective's highest architectural standards. Status escalation is imminent.";
+  }
+};

@@ -4,47 +4,89 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Closet Craze | Identity First</title>
+    <title>Closet Craze | Identity Protocol</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400;1,600&family=Inter:wght@300;400;600;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
+      :root {
+        --color-bg: #050505;
+        --color-amber: #f59e0b;
+        --color-stone-800: #1c1917;
+      }
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #0A0A0A;
+        background-color: var(--color-bg);
         color: #F5F5F5;
         overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
       }
-      .font-serif {
-        font-family: 'Cormorant Garamond', serif;
+      .font-serif { font-family: 'Cormorant Garamond', serif; }
+      .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+      /* Brutalist Scrollbar */
+      ::-webkit-scrollbar { width: 3px; }
+      ::-webkit-scrollbar-track { background: #000; }
+      ::-webkit-scrollbar-thumb { background: #333; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--color-amber); }
+
+      /* CRT / Mesh Overlays */
+      .scanlines {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                    linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+        background-size: 100% 2px, 3px 100%;
+        pointer-events: none;
+        z-index: 1000;
+        opacity: 0.3;
       }
-      ::-webkit-scrollbar {
-        width: 4px;
+      .pixel-grid {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+        z-index: 999;
       }
-      ::-webkit-scrollbar-track {
-        background: #111;
+
+      /* Transitions */
+      .page-transition {
+        animation: pageFade 0.8s cubic-bezier(0.16, 1, 0.3, 1);
       }
-      ::-webkit-scrollbar-thumb {
-        background: #333;
-        border-radius: 2px;
+      @keyframes pageFade {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
       }
-      .fade-mask {
-        mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+
+      /* Subtle Glitch Animation */
+      .glitch:hover {
+        animation: glitch-anim 0.3s infinite;
+      }
+      @keyframes glitch-anim {
+        0% { transform: translate(0); }
+        20% { transform: translate(-2px, 2px); }
+        40% { transform: translate(-2px, -2px); }
+        60% { transform: translate(2px, 2px); }
+        80% { transform: translate(2px, -2px); }
+        100% { transform: translate(0); }
       }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
+    <script type="importmap">
+    {
+      "imports": {
+        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+        "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
+        "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+        "react/": "https://esm.sh/react@^19.2.3/",
+        "react": "https://esm.sh/react@^19.2.3"
+      }
+    }
+    </script>
+  <link rel="stylesheet" href="/index.css">
 </head>
   <body>
+    <div class="scanlines"></div>
+    <div class="pixel-grid"></div>
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
