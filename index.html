@@ -70,6 +70,16 @@
         80% { transform: translate(2px, -2px); }
         100% { transform: translate(0); }
       }
+
+      /* Drawer Stagger Animation */
+      .stagger-item {
+        opacity: 0;
+        transform: translateX(-20px);
+        animation: staggerIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      @keyframes staggerIn {
+        to { opacity: 1; transform: translateX(0); }
+      }
     </style>
     <script type="importmap">
     {
@@ -78,7 +88,8 @@
         "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
         "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
         "react/": "https://esm.sh/react@^19.2.3/",
-        "react": "https://esm.sh/react@^19.2.3"
+        "react": "https://esm.sh/react@^19.2.3",
+        "react-router-dom": "https://esm.sh/react-router-dom@^7.1.5"
       }
     }
     </script>

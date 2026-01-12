@@ -1,5 +1,13 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { 
+  HashRouter, 
+  Routes, 
+  Route, 
+  Navigate, 
+  useLocation, 
+  useNavigate 
+} from 'react-router-dom';
 import { View, UserStatus, Product, Order, Bundle, EngagementRequest, AppNotification, OrderStatus } from './types';
 import { db } from './services/database';
 import { Navigation } from './components/Navigation';
@@ -29,8 +37,10 @@ import { SupplyPanel } from './components/SupplyPanel';
 import { ProfilePanel } from './components/ProfilePanel';
 import { ShoppingBag, Bookmark, Bell, X, Zap } from 'lucide-react';
 
-const App: React.FC = () => {
-  const [view, setView] = useState<View>('landing');
+const AppContent: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
   const [dynamicProducts, setDynamicProducts] = useState<Product[]>(() => db.getAllProducts());
   const [engagementRequests, setEngagementRequests] = useState<EngagementRequest[]>(() => db.getAllRequests());
   const [notifications, setNotifications] = useState<AppNotification[]>(() => db.getAllNotifications());
@@ -48,7 +58,6 @@ const App: React.FC = () => {
   const [vault, setVault] = useState<string[]>(['1', 'a1']);
   const [timeLeft, setTimeLeft] = useState(600);
 
-  // Status calculation (Memoized)
   const currentStatus = useMemo(() => {
     if (points > 20000) return UserStatus.ICON;
     if (points > 5000) return UserStatus.TRENDSETTER;
@@ -63,7 +72,6 @@ const App: React.FC = () => {
     }
   }, [cartItems, timeLeft]);
 
-  // Actions
   const handleVaultToggle = useCallback((e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setVault(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
@@ -73,17 +81,15 @@ const App: React.FC = () => {
     const prod = dynamicProducts.find(p => p.id === id);
     if (prod) {
       setCartItems(prev => [...prev, prod]);
-      setView('cart'); // Direct feedback
+      navigate('/cart');
     }
-  }, [dynamicProducts]);
+  }, [dynamicProducts, navigate]);
 
   const completeCheckout = useCallback(() => {
     if (cartItems.length === 0) return;
-    
     const newTotal = cartItems.reduce((acc, p) => acc + p.price, 0);
     const earnedPoints = Math.floor(newTotal * 0.15);
     const earnedDiamonds = Math.floor(newTotal / 10); 
-    
     const newOrder: Order = {
       id: `TX-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase(),
@@ -93,15 +99,14 @@ const App: React.FC = () => {
       orderType: 'Standard',
       pointsEarned: earnedPoints
     };
-
     db.addOrder(newOrder);
     setOrders(db.getAllOrders());
     setPoints(prev => prev + earnedPoints);
     setDiamonds(prev => prev + earnedDiamonds);
     setCartItems([]);
     setTimeLeft(600);
-    setView('orders');
-  }, [cartItems]);
+    navigate('/orders');
+  }, [cartItems, navigate]);
 
   const activeUserProducts = useMemo(() => 
     dynamicProducts.filter(p => !p.status || p.status === 'DEPLOYED'),
@@ -111,86 +116,17 @@ const App: React.FC = () => {
     vault.map(id => dynamicProducts.find(p => p.id === id)).filter(Boolean) as Product[],
   [vault, dynamicProducts]);
 
-  const isOperatorView = ['admin', 'admin-auth', 'supply', 'landing', 'auth'].includes(view);
+  const isOperatorView = ['/admin', '/admin-auth', '/supply', '/landing', '/auth'].includes(location.pathname) || location.pathname === '/';
   const filteredUserNotifications = notifications.filter(n => n.targetTier === 'ALL' || n.targetTier === currentStatus);
   const unreadCount = filteredUserNotifications.filter(n => !n.read).length;
 
-  const renderContent = () => {
-    switch (view) {
-      case 'landing': return <LandingPanel onEnter={() => setView('auth')} onAdminRequest={() => setView('admin-auth')} userStatus={currentStatus} />;
-      case 'auth': return <AuthPanel userStatus={currentStatus} onAuthorized={(userData) => { setUser(userData); setView('home'); }} />;
-      case 'admin-auth': return <AdminAuthPanel onSuccess={(role) => setView(role === 'admin' ? 'admin' : 'supply')} onCancel={() => setView('home')} />;
-      case 'home':
-        return (
-          <div className="pb-40">
-            <Hero onNavigate={setView} />
-            <section className="px-6 md:px-24 py-32">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 gap-8">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Zap size={14} className="text-amber-500" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.5em] text-stone-600">Protocol 004 // Active</span>
-                  </div>
-                  <h2 className="text-5xl md:text-8xl font-serif tracking-tighter">Midnight <span className="italic text-stone-500">Stock</span></h2>
-                </div>
-                <button onClick={() => setView('drops')} className="text-[11px] font-black uppercase tracking-[0.4em] text-stone-500 hover:text-white border-b border-white/10 pb-2 transition-all">Archive Extraction Protocol</button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {activeUserProducts.filter(p => !p.id.startsWith('a')).map(p => (
-                  <ProductCard 
-                    key={p.id} product={p} onClick={() => { setSelectedProductId(p.id); setView('product-detail'); }} 
-                    onVaultToggle={handleVaultToggle} isInVault={vault.includes(p.id)}
-                  />
-                ))}
-              </div>
-            </section>
-          </div>
-        );
-      case 'admin':
-        return (
-          <AdminPanel 
-            products={dynamicProducts} requests={engagementRequests} notifications={notifications} orders={orders}
-            onAddProduct={(p) => { db.addProduct(p); setDynamicProducts(db.getAllProducts()); }} 
-            onEditProduct={(p) => { db.updateProduct(p); setDynamicProducts(db.getAllProducts()); }} 
-            onDeleteProduct={(id) => { db.deleteProduct(id); setDynamicProducts(db.getAllProducts()); }}
-            onUpdateRequestStatus={(id, s) => { db.updateRequestStatus(id, s); setEngagementRequests(db.getAllRequests()); }}
-            onPurgeRequest={(id) => { db.purgeRequest(id); setEngagementRequests(db.getAllRequests()); }}
-            onAddNotification={(n) => { db.addNotification(n); setNotifications(db.getAllNotifications()); }}
-            onEditNotification={(n) => { db.updateNotification(n); setNotifications(db.getAllNotifications()); }}
-            onDeleteNotification={(id) => { db.deleteNotification(id); setNotifications(db.getAllNotifications()); }}
-            onUpdateOrderStatus={(id, s) => { db.updateOrderStatus(id, s); setOrders(db.getAllOrders()); }}
-          />
-        );
-      case 'supply': return <SupplierDashboard />;
-      case 'fit-finder': return <FitFinder onProductClick={(id) => { setSelectedProductId(id); setView('product-detail'); }} onVaultToggle={handleVaultToggle} vault={vault} />;
-      case 'drops': return <DropsPanel userStatus={currentStatus} onVaultToggle={handleVaultToggle} vault={vault} onProductClick={(id) => { setSelectedProductId(id); setView('product-detail'); }} onAddToCart={addToCart} />;
-      case 'vault': return <VaultPanel vaultItems={vaultProducts} removeFromVault={(id) => setVault(v => v.filter(i => i !== id))} moveToCart={addToCart} userStatus={currentStatus} extraVaultSlots={extraVaultSlots} diamonds={diamonds} onBuySpace={(c, s) => { setDiamonds(d => d - c); setExtraVaultSlots(v => v + s); }} />;
-      case 'cart': return <CartPanel cartItems={cartItems as Product[]} removeFromCart={(id) => setCartItems(v => v.filter(i => i.id !== id))} moveToVault={(id) => { setVault(v => [...v, id]); setCartItems(c => c.filter(i => i.id !== id)); }} onCheckout={() => setView('checkout')} timeLeft={timeLeft} userStatus={currentStatus} />;
-      case 'product-detail':
-        const prod = dynamicProducts.find(p => p.id === selectedProductId);
-        if (!prod) return <div>Protocol Link Broken</div>;
-        return <ProductDetail product={prod} onBack={() => setView('home')} onAddToCart={addToCart} onAddToVault={(id) => setVault(v => [...new Set([...v, id])])} userStatus={currentStatus} onNavigateToTryOn={(id) => { setSelectedProductId(id); setView('try-on'); }} />;
-      case 'orders': return <OrdersPanel orders={orders} userStatus={currentStatus} />;
-      case 'checkout': return <CheckoutPanel cartItems={cartItems} onBack={() => setView('cart')} onComplete={completeCheckout} userStatus={currentStatus} />;
-      case 'profile': return <ProfilePanel user={user} points={points} diamonds={diamonds} userStatus={currentStatus} />;
-      case 'famous-products': return <FamousProductsPanel userStatus={currentStatus} onProductClick={(id) => { setSelectedProductId(id); setView('product-detail'); }} onAddToCart={addToCart} />;
-      case 'try-on': return <TryOnPanel userStatus={currentStatus} onAddToCart={addToCart} onAddToVault={(id) => setVault(v => [...new Set([...v, id])])} initialProductId={selectedProductId || undefined} />;
-      case 'categories': return <CategoryPanel onProductClick={(id) => { setSelectedProductId(id); setView('product-detail'); }} onVaultToggle={handleVaultToggle} vault={vault} />;
-      case 'flash-sale': return <FlashSalePanel userStatus={currentStatus} onAddToCart={addToCart} onProductClick={(id) => { setSelectedProductId(id); setView('product-detail'); }} />;
-      case 'game-room': return <GameRoomPanel userStatus={currentStatus} diamonds={diamonds} tickets={tickets} onSpendDiamonds={(amt) => setDiamonds(d => d - amt)} onEarnTickets={(amt) => setTickets(t => t + amt)} onRedeemTickets={(amt, pid) => { setTickets(t => t - amt); setVault(v => [...v, pid]); }} />;
-      case 'ensembles': return <EnsemblePanel userStatus={currentStatus} onAddBundleToCart={(b) => { setCartItems(prev => [...prev, b]); setView('cart'); }} onProductClick={(id) => { setSelectedProductId(id); setView('product-detail'); }} />;
-      case 'custom-request': return <CustomRequestPanel userStatus={currentStatus} onBack={() => setView('home')} />;
-      case 'collections': return <ManifestoPanel userStatus={currentStatus} />;
-      default: return <div className="pt-40 text-center uppercase tracking-[1em] text-stone-800">Protocol Under Maintenance</div>;
-    }
-  };
-
   return (
     <div className="relative min-h-screen selection:bg-amber-500/30">
-      {!isOperatorView && <Navigation currentView={view} setView={setView} />}
+      {!isOperatorView && <Navigation />}
+      
       {!isOperatorView && (
         <header className="fixed top-0 left-0 right-0 h-24 flex items-center justify-between px-6 md:px-24 z-40 bg-black/60 backdrop-blur-2xl border-b border-white/5">
-          <div onClick={() => { setView('home'); setSelectedProductId(null); }} className="text-3xl font-serif tracking-tighter cursor-pointer group flex items-center h-full transition-all duration-700">
+          <div onClick={() => navigate('/home')} className="text-3xl font-serif tracking-tighter cursor-pointer group flex items-center h-full transition-all duration-700">
             <span className="text-white group-hover:text-amber-500 transition-colors">C</span>
             <span className="max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-700 ease-in-out whitespace-nowrap overflow-hidden">loset</span>
             <span className="ml-1 text-white">C</span>
@@ -201,10 +137,10 @@ const App: React.FC = () => {
               <Bell size={18} fill={unreadCount > 0 ? "currentColor" : "none"} strokeWidth={1.5} />
               {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full animate-ping" />}
             </button>
-            <button onClick={() => setView('vault')} className={`relative p-2 transition-all ${view === 'vault' ? 'text-white' : 'text-stone-500 hover:text-white'}`}>
-              <Bookmark size={18} fill={vault.length > 0 && view === 'vault' ? "currentColor" : "none"} strokeWidth={1.5} />
+            <button onClick={() => navigate('/vault')} className={`relative p-2 transition-all ${location.pathname === '/vault' ? 'text-white' : 'text-stone-500 hover:text-white'}`}>
+              <Bookmark size={18} fill={vault.length > 0 && location.pathname === '/vault' ? "currentColor" : "none"} strokeWidth={1.5} />
             </button>
-            <button onClick={() => setView('cart')} className={`relative p-2 transition-all ${view === 'cart' ? 'text-white' : 'text-stone-500 hover:text-white'}`}>
+            <button onClick={() => navigate('/cart')} className={`relative p-2 transition-all ${location.pathname === '/cart' ? 'text-white' : 'text-stone-500 hover:text-white'}`}>
               <ShoppingBag size={18} strokeWidth={1.5} />
               {cartItems.length > 0 && <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 bg-amber-500 text-black text-[9px] font-black rounded-full border-2 border-black">{cartItems.length}</span>}
             </button>
@@ -250,9 +186,95 @@ const App: React.FC = () => {
         </>
       )}
 
-      <main className={!isOperatorView ? "md:ml-24" : ""}>{renderContent()}</main>
+      <main className={!isOperatorView ? "md:ml-24" : ""}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/landing" />} />
+          <Route path="/landing" element={<LandingPanel onEnter={() => navigate('/auth')} onAdminRequest={() => navigate('/admin-auth')} userStatus={currentStatus} />} />
+          <Route path="/auth" element={<AuthPanel userStatus={currentStatus} onAuthorized={(userData) => { setUser(userData); navigate('/home'); }} />} />
+          <Route path="/admin-auth" element={<AdminAuthPanel onSuccess={(role) => navigate(role === 'admin' ? '/admin' : '/supply')} onCancel={() => navigate('/home')} />} />
+          <Route path="/home" element={
+            <div className="pb-40">
+              <Hero onNavigate={(v) => navigate(`/${v}`)} />
+              <section className="px-6 md:px-24 py-32">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 gap-8">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Zap size={14} className="text-amber-500" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.5em] text-stone-600">Protocol 004 // Active</span>
+                    </div>
+                    <h2 className="text-5xl md:text-8xl font-serif tracking-tighter">Midnight <span className="italic text-stone-500">Stock</span></h2>
+                  </div>
+                  <button onClick={() => navigate('/drops')} className="text-[11px] font-black uppercase tracking-[0.4em] text-stone-500 hover:text-white border-b border-white/10 pb-2 transition-all">Archive Extraction Protocol</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {activeUserProducts.filter(p => !p.id.startsWith('a')).map(p => (
+                    <ProductCard 
+                      key={p.id} product={p} onClick={() => { setSelectedProductId(p.id); navigate(`/product/${p.id}`); }} 
+                      onVaultToggle={handleVaultToggle} isInVault={vault.includes(p.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            </div>
+          } />
+          <Route path="/drops" element={<DropsPanel userStatus={currentStatus} onVaultToggle={handleVaultToggle} vault={vault} onProductClick={(id) => navigate(`/product/${id}`)} onAddToCart={addToCart} />} />
+          <Route path="/product/:id" element={
+            <ProductDetailWrapper 
+              products={dynamicProducts} 
+              userStatus={currentStatus} 
+              addToCart={addToCart} 
+              setVault={setVault} 
+              onBack={() => navigate('/home')}
+              onNavigateToTryOn={(id) => navigate(`/try-on?product=${id}`)}
+            />
+          } />
+          <Route path="/vault" element={<VaultPanel vaultItems={vaultProducts} removeFromVault={(id) => setVault(v => v.filter(i => i !== id))} moveToCart={addToCart} userStatus={currentStatus} extraVaultSlots={extraVaultSlots} diamonds={diamonds} onBuySpace={(c, s) => { setDiamonds(d => d - c); setExtraVaultSlots(v => v + s); }} />} />
+          <Route path="/cart" element={<CartPanel cartItems={cartItems as Product[]} removeFromCart={(id) => setCartItems(v => v.filter(i => i.id !== id))} moveToVault={(id) => { setVault(v => [...v, id]); setCartItems(c => c.filter(i => i.id !== id)); }} onCheckout={() => navigate('/checkout')} timeLeft={timeLeft} userStatus={currentStatus} />} />
+          <Route path="/orders" element={<OrdersPanel orders={orders} userStatus={currentStatus} />} />
+          <Route path="/checkout" element={<CheckoutPanel cartItems={cartItems} onBack={() => navigate('/cart')} onComplete={completeCheckout} userStatus={currentStatus} />} />
+          <Route path="/profile" element={<ProfilePanel user={user} points={points} diamonds={diamonds} userStatus={currentStatus} />} />
+          <Route path="/famous-products" element={<FamousProductsPanel userStatus={currentStatus} onProductClick={(id) => navigate(`/product/${id}`)} onAddToCart={addToCart} />} />
+          <Route path="/try-on" element={<TryOnPanel userStatus={currentStatus} onAddToCart={addToCart} onAddToVault={(id) => setVault(v => [...new Set([...v, id])])} />} />
+          <Route path="/categories" element={<CategoryPanel onProductClick={(id) => navigate(`/product/${id}`)} onVaultToggle={handleVaultToggle} vault={vault} />} />
+          <Route path="/fit-finder" element={<FitFinder onProductClick={(id) => navigate(`/product/${id}`)} onVaultToggle={handleVaultToggle} vault={vault} />} />
+          <Route path="/flash-sale" element={<FlashSalePanel userStatus={currentStatus} onAddToCart={addToCart} onProductClick={(id) => navigate(`/product/${id}`)} />} />
+          <Route path="/game-room" element={<GameRoomPanel userStatus={currentStatus} diamonds={diamonds} tickets={tickets} onSpendDiamonds={(amt) => setDiamonds(d => d - amt)} onEarnTickets={(amt) => setTickets(t => t + amt)} onRedeemTickets={(amt, pid) => { setTickets(t => t - amt); setVault(v => [...v, pid]); }} />} />
+          <Route path="/ensembles" element={<EnsemblePanel userStatus={currentStatus} onAddBundleToCart={(b) => { setCartItems(prev => [...prev, b]); navigate('/cart'); }} onProductClick={(id) => navigate(`/product/${id}`)} />} />
+          <Route path="/custom-request" element={<CustomRequestPanel userStatus={currentStatus} onBack={() => navigate('/home')} />} />
+          <Route path="/collections" element={<ManifestoPanel userStatus={currentStatus} />} />
+          <Route path="/admin" element={
+            <AdminPanel 
+              products={dynamicProducts} requests={engagementRequests} notifications={notifications} orders={orders}
+              onAddProduct={(p) => { db.addProduct(p); setDynamicProducts(db.getAllProducts()); }} 
+              onEditProduct={(p) => { db.updateProduct(p); setDynamicProducts(db.getAllProducts()); }} 
+              onDeleteProduct={(id) => { db.deleteProduct(id); setDynamicProducts(db.getAllProducts()); }}
+              onUpdateRequestStatus={(id, s) => { db.updateRequestStatus(id, s); setEngagementRequests(db.getAllRequests()); }}
+              onPurgeRequest={(id) => { db.purgeRequest(id); setEngagementRequests(db.getAllRequests()); }}
+              onAddNotification={(n) => { db.addNotification(n); setNotifications(db.getAllNotifications()); }}
+              onEditNotification={(n) => { db.updateNotification(n); setNotifications(db.getAllNotifications()); }}
+              onDeleteNotification={(id) => { db.deleteNotification(id); setNotifications(db.getAllNotifications()); }}
+              onUpdateOrderStatus={(id, s) => { db.updateOrderStatus(id, s); setOrders(db.getAllOrders()); }}
+            />
+          } />
+          <Route path="/supply" element={<SupplierDashboard />} />
+        </Routes>
+      </main>
     </div>
   );
 };
+
+// Helper component to resolve product from URL params
+const ProductDetailWrapper: React.FC<any> = ({ products, userStatus, addToCart, setVault, onBack, onNavigateToTryOn }) => {
+  const { id } = (window as any).location.hash.includes('product/') ? { id: (window as any).location.hash.split('product/')[1] } : { id: null };
+  const prod = products.find((p: any) => p.id === id);
+  if (!prod) return <div className="pt-40 text-center uppercase font-black text-stone-800 tracking-[1em]">Protocol Reference Void</div>;
+  return <ProductDetail product={prod} onBack={onBack} onAddToCart={addToCart} onAddToVault={(id) => setVault((v: any) => [...new Set([...v, id])])} userStatus={userStatus} onNavigateToTryOn={onNavigateToTryOn} />;
+};
+
+const App: React.FC = () => (
+  <HashRouter>
+    <AppContent />
+  </HashRouter>
+);
 
 export default App;
